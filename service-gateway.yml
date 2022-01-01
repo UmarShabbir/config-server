@@ -1,0 +1,67 @@
+server:
+  port: 8080
+
+spring:
+  main:
+    web-application-type: reactive
+  
+  application:
+    name: service-gateway
+  
+  cloud:
+    gateway:
+      routes:
+        - id: user-service
+          uri: lb://user-service
+          predicates:
+            - Path=/user/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: user-deck
+                fallbackuri: forward:/fallback/user
+
+        - id: department-service
+          uri: lb://department-service
+          predicates:
+            - Path=/department/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: department-deck
+                fallbackuri: forward:/fallback/department
+
+        - id: inventory
+          uri: lb://inventory
+          predicates:
+            - Path=/inventory/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: inventory-deck
+                fallbackuri: forward:/fallback/inventory
+  security:
+    user:
+      name: admin
+      password: admin
+      roles: ADMIN
+
+#Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: hystrix.stream, health, info, refresh
+
+#Hystrix Configuration
+hystrix:
+  command:
+    fallbackcmd:
+      execution:
+        isolation:
+          thread:
+            timeoutInMilliseconds: 4000
+
+swagger:
+  config:
+    refreshrate: 5000
